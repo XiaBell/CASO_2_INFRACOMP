@@ -18,6 +18,7 @@ public class BMPImage {
             // Read image dimensions
             width = (header[21] & 0xFF) << 24 | (header[20] & 0xFF) << 16 |
                    (header[19] & 0xFF) << 8 | (header[18] & 0xFF);
+                   
             height = (header[25] & 0xFF) << 24 | (header[24] & 0xFF) << 16 |
                     (header[23] & 0xFF) << 8 | (header[22] & 0xFF);
 
