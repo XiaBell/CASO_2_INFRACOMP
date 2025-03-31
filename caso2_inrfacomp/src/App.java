@@ -6,6 +6,7 @@ import java.util.List;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.math.*;
 
 
 public class App {
@@ -64,10 +65,10 @@ private static void generateReferences(Scanner scanner) {
         int filterYBaseAddress = filterXBaseAddress + filterSize;
         int resultBaseAddress = filterYBaseAddress + filterSize;
         
-        int imagePages = (imageSize + pageSize - 1) / pageSize;
-        int filterXPages = (filterSize + pageSize - 1) / pageSize;
-        int filterYPages = (filterSize + pageSize - 1) / pageSize;
-        int resultPages = (imageSize + pageSize - 1) / pageSize;
+        int imagePages =   imageSize;
+        int filterXPages = filterSize;
+        int filterYPages = filterSize;
+        int resultPages =  imageSize;
         
         // Generate references for Sobel filter application
         for (int i = 1; i < imagen.alto - 1; i++) {
@@ -139,7 +140,7 @@ private static void generateReferences(Scanner scanner) {
         }
 
         // Calculate total number of pages
-        int totalPages = imagePages + filterXPages + filterYPages + resultPages;
+        int totalPages = (int) Math.ceil((double) (imagePages + filterXPages + filterYPages + resultPages) / pageSize);
 
         // Generate output file
         String outputFile = "referencias.txt";
