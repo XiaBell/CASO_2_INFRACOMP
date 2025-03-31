@@ -139,7 +139,7 @@ private static void generateReferences(Scanner scanner) {
             }
         }
 
-        // Calculate total number of pages
+        // Calculate total number of pages aproximated
         int totalPages = (int) Math.ceil((double) (imagePages + filterXPages + filterYPages + resultPages) / pageSize);
 
         // Generate output file
