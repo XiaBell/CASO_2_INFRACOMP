@@ -1,15 +1,17 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class PageManager {
     private final List<Page> pageTable;
     private final int numFrames;
     private final ReentrantLock lock;
-    private volatile int hits;
-    private volatile int misses;
-    private volatile long totalTime;
+    private final AtomicInteger hits;
+    private final AtomicInteger misses;
+    private final AtomicLong totalTime;
     private static final long RAM_ACCESS_TIME = 50; // nanoseconds
     private static final long SWAP_ACCESS_TIME = 10_000_000; // nanoseconds (10ms)
     private final Random random = new Random();
@@ -22,27 +24,13 @@ public class PageManager {
         }
         this.numFrames = numFrames;
         this.lock = new ReentrantLock();
-        this.hits = 0;
-        this.misses = 0;
-        this.totalTime = 0;
-    }
-
-    public void updatePageStates() {
-        lock.lock();
-        try {
-            // En cada interrupción de reloj (20ms), SOLO limpiamos el bit R
-            // El bit M NO se limpia, como especifica Tanenbaum
-            for (Page page : pageTable) {
-                if (page.isInMemory()) {
-                    page.setReferenced(false);  // Solo limpiamos R, no M
-                }
-            }
-        } finally {
-            lock.unlock();
-        }
+        this.hits = new AtomicInteger(0);
+        this.misses = new AtomicInteger(0);
+        this.totalTime = new AtomicLong(0);
     }
 
     public boolean accessPage(int pageNumber, boolean isWrite) {
+    
         if (pageNumber < 0 || pageNumber >= pageTable.size()) {
             return false;
         }
@@ -59,16 +47,16 @@ public class PageManager {
                 if (isWrite) {
                     page.setModified(true);  // Bit M se establece solo en escrituras
                 }
-                hits++;
-                totalTime += RAM_ACCESS_TIME;
+                hits.incrementAndGet();
+                totalTime.addAndGet(RAM_ACCESS_TIME);
                 return true;
             }
 
-            misses++;
-            totalTime += SWAP_ACCESS_TIME;
+            misses.incrementAndGet();
+            totalTime.addAndGet(SWAP_ACCESS_TIME);
             
             // Log detallado del fallo de página
-            if (misses % 100 == 0) {
+            if (misses.get() % 100 == 0) {
                 System.out.println("\nFallo de página #" + misses + ":");
                 System.out.println("- Página solicitada: " + pageNumber);
                 System.out.println("- Operación: " + (isWrite ? "Escritura" : "Lectura"));
@@ -93,12 +81,14 @@ public class PageManager {
                 if (isWrite) {
                     page.setModified(true);  // M=1 solo si es escritura
                 }
+                System.out.println("Caso extraordinario? (1)");
+                hits.incrementAndGet();
                 return true;
             }
 
             Page victim = selectVictimNRU();
             if (victim != null) {
-                if (misses % 100 == 0) {
+                if (misses.get() % 100 == 0) {
                     System.out.println("- Víctima seleccionada: Página " + victim.getPageNumber() + 
                                      " del marco " + victim.getFrameNumber() +
                                      " (Clase " + (victim.isReferenced() ? "2" : "0") + 
@@ -112,6 +102,8 @@ public class PageManager {
                 if (isWrite) {
                     page.setModified(true); // M=1 solo si es escritura
                 }
+                System.out.println("Caso extraordinario? (2)");
+                hits.incrementAndGet();
                 return true;
             }
 
@@ -122,7 +114,7 @@ public class PageManager {
     }
 
     private Page selectVictimNRU() {
-        List<Page>[] classes = new List[4];
+        List<Page>[] classes = new List<Page>[4];
         for (int i = 0; i < 4; i++) {
             classes[i] = new ArrayList<>();
         }
@@ -216,10 +208,10 @@ public class PageManager {
         return "Marcos de memoria utilizados: " + getNumPagesInMemory() + "/" + numFrames;
     }
 
-    public int getHits() { return hits; }
-    public int getMisses() { return misses; }
-    public long getTotalTime() { return totalTime; }
+    public int getHits() { return hits.get(); }
+    public int getMisses() { return misses.get(); }
+    public long getTotalTime() { return totalTime.get(); }
     public double getHitPercentage() {
-        return hits * 100.0 / (hits + misses);
+        return hits.get() * 100.0 / (hits.get() + misses.get());
     }
 } 
